@@ -3,7 +3,7 @@
 ; 编译方法：nasm pmtest1.asm -o pmtest1.bin
 ; ==========================================
 
-%include	"pm.inc"	; 常量, 宏, 以及一些说明
+%include	"pm.asm"	; 常量, 宏, 以及一些说明
 
 org	07c00h
 	jmp	LABEL_BEGIN
