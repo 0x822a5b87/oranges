@@ -35,14 +35,17 @@ LABEL_BEGIN:
 	mov	sp, 0100h
 
 	; 初始化 32 位代码段描述符
-	xor	eax, eax
-	mov	ax, cs
-	shl	eax, 4
-	add	eax, LABEL_SEG_CODE32
-	mov	word [LABEL_DESC_CODE32 + 2], ax
-	shr	eax, 16
-	mov	byte [LABEL_DESC_CODE32 + 4], al
-	mov	byte [LABEL_DESC_CODE32 + 7], ah
+	xor	eax, eax                                ; eax 寄存器清零
+	mov	ax, cs                                  ; code segment 赋值 ax
+	shl	eax, 4                                  ; CS:IP 取址等于 CS * 16 + IP，这里是 CS * 16
+	add	eax, LABEL_SEG_CODE32                   ; CS * 16 + offset
+	; eax 现在是程序的基地址，我们需要用这个程序的基地址来初始化我们的 GDT 的这个表项
+	mov	word [LABEL_DESC_CODE32 + 2], ax        ; CS 的低16位初始化
+	shr	eax, 16                                 ; CS 的高16位
+	mov	byte [LABEL_DESC_CODE32 + 4], al        ; CS 的高16位的低八位
+	mov	byte [LABEL_DESC_CODE32 + 7], ah        ; CS 的高16位的高八位
+
+	; 到这里我们的 LABEL_DESC_CODE32 和 LABEL_DESC_VIDEO 都已经加载完毕
 
 	; 为加载 GDTR 作准备
 	xor	eax, eax
@@ -69,7 +72,7 @@ LABEL_BEGIN:
 
 	; 真正进入保护模式
 	jmp	dword SelectorCode32:0	; 执行这一句会把 SelectorCode32 装入 cs,
-					; 并跳转到 Code32Selector:0  处
+					            ; 并跳转到 SelectorCode32:0  处
 ; END of [SECTION .s16]
 
 
@@ -81,7 +84,7 @@ LABEL_SEG_CODE32:
 	mov	gs, ax			; 视频段选择子(目的)
 
 	mov	edi, (80 * 11 + 79) * 2	; 屏幕第 11 行, 第 79 列。
-	mov	ah, 0Ch			; 0000: 黑底    1100: 红字
+	mov	ah, 1Ch			; 0000: 黑底    1100: 红字
 	mov	al, 'P'
 	mov	[gs:edi], ax
 
@@ -91,3 +94,5 @@ LABEL_SEG_CODE32:
 SegCode32Len	equ	$ - LABEL_SEG_CODE32
 ; END of [SECTION .s32]
 
+times         361        db        0        ; 填充剩下的空间，使生成的二进制代码恰好为512字节
+dw         0xaa55                                ; 结束标志
